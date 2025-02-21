@@ -1,0 +1,48 @@
+def otimizar_corte_multiplas_chapas(chapa_largura, chapa_altura, pecas, maquina):
+    # Configurações de margem e espaçamento
+    if maquina == "Rauter":
+        margem_lateral = 10
+        espacamento = 12
+    elif maquina == "Seccionadora":
+        margem_lateral = 10
+        espacamento = 4
+    else:
+        raise ValueError("Máquina não suportada.")
+
+    # Dimensões ajustadas da chapa
+    largura_ajustada = chapa_largura - 2 * margem_lateral
+    altura_ajustada = chapa_altura - 2 * margem_lateral
+
+    # Lista de todas as peças (com espaçamento)
+    all_rects = []
+    for idx, (w, h, q) in enumerate(pecas):
+        for _ in range(q):
+            all_rects.append((w + espacamento, h + espacamento, idx))
+
+    # Verificar se as peças cabem na chapa
+    for w, h, rid in all_rects:
+        if (w > largura_ajustada and w > altura_ajustada) or (h > largura_ajustada and h > altura_ajustada):
+            raise ValueError(f"Peça {rid+1} não cabe na chapa mesmo com rotação.")
+
+    # Configurar o empacotador
+    packer = newPacker(rotation=True)
+    for _ in range(len(all_rects)):  # Chapas suficientes para o pior caso
+        packer.add_bin(largura_ajustada, altura_ajustada)
+
+    # Adicionar todas as peças
+    for w, h, rid in all_rects:
+        packer.add_rect(w, h, rid=rid)
+
+    packer.pack()
+
+    # Processar resultado
+    plano_corte = []
+    for bin_idx, abin in enumerate(packer):
+        for rect in abin:
+            x = rect.x + margem_lateral
+            y = rect.y + margem_lateral
+            largura = rect.width - espacamento
+            altura = rect.height - espacamento
+            plano_corte.append((bin_idx, x, y, largura, altura))
+
+    return plano_corte, len(packer)
